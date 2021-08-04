@@ -1,0 +1,32 @@
+copilot init
+→ VPC
+→ pub-subnet x 2 & pri-subnet x 2
+→ IAM role
+→ security group(80,433 port & for container-interactive communication )
+→ internet Gateway to connect to  public internet
+→ Route table
+→ ECR repo
+→ ECS Cluster (on fargate)
+→ Application Load Balancer 
+→ target group to connect the load  balancer 
+→ ECS task definition 
+→ IAM role for ECS resources
+
+copilot pipeline init
+automatically detected remote origin repository
+create configuration for codebuild & for codepipeline
+
+git add . & git commit $ git push 
+
+copilot pipeline update
+→ codePipeline
+→ codeBuild
+
+(create manifest.yml)
+copilot svc init
+(update the manifest to change the default)
+copilot svc deploy --name copilot-cake --env test
+(既存のtaskを自動的に削除してくれる!!)
+
+(サービスのリストを表示)
+copilot svc show
