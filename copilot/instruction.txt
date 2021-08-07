@@ -49,12 +49,16 @@ copilot env init --name (環境名:prod) --region (リージョン:ap-northeast-
 
 (create manifest.yml:defined service)
 copilot svc init
+(※ecsごとに新しいserviceを作成する)
 
 (update the manifest to change the default)
 copilot svc deploy --name (サービス名:copilot-cake) --env (環境名:test)
 (既存のtaskを自動的に削除してくれる!!)
 
-
+(すべてのサービスで共有されるパイプラインを作成)
+copilot pipeline init --url (リポジトリurl) --environments (環境名)
+(initで作成されたymlを適用するために)
+copilot pipeline update
 
 (サービスの詳細を表示)
 copilot svc show --app (アプリ名) --name (サービス名)
@@ -62,6 +66,10 @@ copilot svc show --app (アプリ名) --name (サービス名)
 copilot pipeline show --app (アプリ名) --name (パイプライン名) --resources
 (環境の詳細情報を表示)
 copilot env show --app (アプリ名) --name (環境名) --resources
+(パイプラインの情報表示)
+copilot pipeline show --app (アプリ名)  --resources
+
+
 (サービスの削除)
 copilot svc delete --env (環境名) --name (サービス名)
 (ワークスペースに紐付いているpipelineの削除)
@@ -70,3 +78,5 @@ copilot pipeline delete --yes
 copilot env delete --name (環境名) --app (アプリ名)
 (アプリの削除)
 copilot app delete --yes
+(パイプラインの削除)
+copilot pipeline delete
