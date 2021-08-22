@@ -49,7 +49,7 @@ resource "aws_security_group" "ecs_tasks" {
       aws_vpc_endopoint.s3.prefix_list_ids
     ]
   }
-
+# we want to allow communication between the VPC Endpoint NetworkInterfarces & the resources in the VPC 
   egress {
     protocol    = "tcp"
     from_port   = 443
