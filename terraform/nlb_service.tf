@@ -28,9 +28,9 @@ resource "aws_lb_listener" "nlb_listener" {
 }
 
 resource "aws_lb_target_group" "nlb_tg" {
-    depends_on = [
-      aws_lb.nlb
-    ]
+  depends_on = [
+    aws_lb.nlb
+  ]
   name        = "nlb-${var.app_name}-${var.env}-tg"
   port        = var.app_port
   protocol    = "TCP"
