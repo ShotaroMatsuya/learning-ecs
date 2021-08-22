@@ -1,6 +1,7 @@
 resource "aws_ecs_cluster" "main" {
-  name = var.app_name
+  name = var.name
+
   tags = {
-    Name = var.app_name
+    Name = var.cluster_tag_name
   }
 }

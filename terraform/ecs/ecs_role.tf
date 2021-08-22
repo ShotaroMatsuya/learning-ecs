@@ -7,36 +7,55 @@
 # we're going to create the latter with a policy tha gives permissions to S3 because that's where the actual docker image layers are stored
 
 # permision to ECR to pull the images, and lastly  permission to push logs to cloudWatch
-resource "aws_iam_role" "ecs_execution" {
-  name               = "ecs_execution-${var.name}-role"
+resource "aws_iam_role" "task_role" {
+  name               = "ecs_tasks-${var.name}-role"
   assume_role_policy = <<EOF
 {
-    "Version": "2012-10-17"
-    "Statement": [
-        {
-            "Action": "sts:AssumeRole",
-            "Principal": {
-                "Service": "ecs-tasks.amazonaws.com"
-            },
-            "Effect": "Allow",
-            "Sid": ""
-        }
-    ]
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
 }
 EOF
 }
 # the policy that will actually be attached to this particular role
 # giving permissions to S3 and ECR to be able to authorize & in additino to be able to actually pull the relevant images, and lastly to be able to have logs being pushed through to cloud watch 
-resource "aws_iam_role_policy" "ecs_execution" {
-  name = "ecs_execution-${var.name}-policy"
-  role = aws_iam_role.ecs_execution.id
+resource "aws_iam_role" "main_ecs_tasks" {
+  name               = "main_ecs_tasks-${var.name}-role"
+  assume_role_policy = <<EOF
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {
+      "Action": "sts:AssumeRole",
+      "Principal": {
+        "Service": "ecs-tasks.amazonaws.com"
+      },
+      "Effect": "Allow",
+      "Sid": ""
+    }
+  ]
+}
+EOF
+}
+
+resource "aws_iam_role_policy" "main_ecs_tasks" {
+  name = "main_ecs_tasks-${var.name}-policy"
+  role = aws_iam_role.main_ecs_tasks.id
 
   policy = <<EOF
 {
     "Version": "2012-10-17",
     "Statement": [
         {
-            "Effect": "Allow"
+            "Effect": "Allow",
             "Action": [
                 "s3:Get*",
                 "s3:List*"
@@ -46,7 +65,7 @@ resource "aws_iam_role_policy" "ecs_execution" {
         {
             "Effect": "Allow",
             "Resource": [
-                "*"
+              "*"
             ],
             "Action": [
                 "ecr:GetAuthorizationToken",
@@ -56,10 +75,11 @@ resource "aws_iam_role_policy" "ecs_execution" {
                 "logs:CreateLogStream",
                 "logs:PutLogEvents",
                 "logs:CreateLogGroup",
-                "logs:DescribeLogStreams",
+                "logs:DescribeLogStreams"
             ]
         }
     ]
+
 }
 EOF
 }
