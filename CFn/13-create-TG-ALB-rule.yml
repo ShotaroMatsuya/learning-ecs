@@ -1,13 +1,11 @@
 AWSTemplateFormatVersion: '2010-09-09'
 Description: Deploy a service on AWS Fargate, hosted in a public subnet of a VPC, and accessible via a public load balancer
 
-# Input Paramters
-# 環境によって変わる値をパラメータ化することで環境が変わるたびに書き換える必要がない汎用的なテンプレートにできる
-# Ref関数を用いてResourcesセクション内で参照できる
+# Input Parameters(yml内でRefで取得できる)
 Parameters:
   StackName: 
     Type: String
-    Default: Fargate-VPC-Stack
+    Default: Fargate-Network-Stack
     Description: The name of the parent fargate networking stack
   ServiceName:
     Type: String
@@ -52,12 +50,9 @@ Parameters:
     Description: (Optional) An IAM role to give the service's containers if the code within needs to
                  access other AWS resources like S3 buckets, DynamoDB tables, etc
 
-# taskRoleArnのところで使用するconditionをここで定義する
-# Roleが定義されていない場合はfalseが返却される
 Conditions: 
   HasCustomRole: !Not [!Equals [!Ref 'Role', '']]                 
 
-# task 定義の作成
 Resources: 
   TaskDefinition:
     Type: AWS::ECS::TaskDefinition 
@@ -71,7 +66,6 @@ Resources:
       ExecutionRoleArn:
         Fn::ImportValue: 
           !Join [':', [!Ref 'StackName', 'ECSTaskExecutionRole']]  
-          # HasCustomRoleがfalseの場合は、NoValueとなる
       TaskRoleArn:
         Fn::If: 
           - 'HasCustomRole' 
@@ -83,4 +77,37 @@ Resources:
           Memory: !Ref 'ContainerMemory'
           Image: !Ref 'ImageUrl'
           PortMappings: 
-            - ContainerPort: !Ref 'ContainerPort'    
+            - ContainerPort: !Ref 'ContainerPort'      
+
+  # nginxコンテナへのtgを作成（他のスタックにあるexportの値はimportValueで取得）
+  TargetGroup:
+    Type: AWS::ElasticLoadBalancingV2::TargetGroup 
+    Properties: 
+      HealthCheckIntervalSeconds: 6
+      HealthCheckPath: /
+      HealthCheckProtocol: HTTP 
+      HealthCheckTimeoutSeconds: 5
+      HealthyThresholdCount: 2
+      TargetType: ip 
+      Name: !Ref 'ServiceName'
+      Port: !Ref 'ContainerPort'
+      Protocol: HTTP 
+      UnhealthyThresholdCount: 2
+      VpcId:                     
+        Fn::ImportValue:
+          !Join [':', [!Ref 'StackName', 'VPCId']]
+
+  LoadBalancerRule:
+    Type: AWS::ElasticLoadBalancingV2::ListenerRule
+    Properties:
+      Actions:
+        - TargetGroupArn: !Ref 'TargetGroup'       
+          Type: 'forward'
+      Conditions:
+        - Field: path-pattern
+          Values: [!Ref 'Path']       
+      ListenerArn: 
+        Fn::ImportValue:
+          !Join [':', [!Ref 'StackName', 'PublicListener']] 
+      Priority: !Ref 'Priority'                         
+      
