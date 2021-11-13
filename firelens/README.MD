@@ -1,74 +1,96 @@
-1.設定ファイル込みのイメージ作成
+# 1.設定ファイル込みのイメージ作成
 
-同じログ内容を合計3箇所の出力先へ送るシンプルなFluent Bitの設定
-=>  exra.conf
-※予めKinesis FirehoseとS3は作成しておく
+同じログ内容を合計 3 箇所の出力先へ送るシンプルな Fluent Bit の設定
+=> exra.conf
+※予め Kinesis Firehose と S3 は作成しておく
 
-confに関しては下記リンクを参考に
-https://qiita.com/masalennon/items/2d3241ecd426023ee196
+conf に関しては[リンク](https://qiita.com/masalennon/items/2d3241ecd426023ee196)を参考に
 
-2.DockerfileとECRへイメージアップロード
+# 2.Dockerfile と ECR へイメージアップロード
 
-ECS EC2の場合、S3にFluent Bitの設定ファイルを置いておけば設定ファイルを読み込んでくれる機能がサポートされています。しかし、Fargateはその機能がサポートされていません。そのため、Fluent Bitのコンテナ内に設定ファイルを入れておきます。
+ECS EC2 の場合、S3 に Fluent Bit の設定ファイルを置いておけば設定ファイルを読み込んでくれる機能がサポートされています。しかし、Fargate はその機能がサポートされていません。そのため、Fluent Bit のコンテナ内に設定ファイルを入れておきます。
 
 AWS Fargate でホストされるタスクは、file 設定ファイルタイプのみをサポートします。
 
+```
 $ docker build -t fluentbit-dev-my-firelens .
-$ docker tag fluentbit-dev-my-firelens:latest 528163014577.dkr.ecr.us-east-1.amazonaws.com/fluentbit-dev-my-firelens:latest
-$ aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 528163014577.dkr.ecr.us-east-1.amazonaws.com
-$ docker push 528163014577.dkr.ecr.us-east-1.amazonaws.com/fluentbit-dev-my-firelens:latest
 
-3.ECS clusterの作成
+$ docker tag fluentbit-dev-my-firelens:latest 528163014577.dkr.ecr.us-east-1.amazonaws.com/fluentbit-dev-my-firelens:latest
+
+$ aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin 528163014577.dkr.ecr.us-east-1.amazonaws.com
+
+$ docker push 528163014577.dkr.ecr.us-east-1.amazonaws.com/fluentbit-dev-my-firelens:latest
+```
+
+# 3.ECS cluster の作成
+
 略
 
-4.FireLens有効化とタスク定義の編集
+# 4.FireLens 有効化とタスク定義の編集
 
-FireLens有効
-FireLensの統合を有効にチェックを入れます。イメージはECRにアップした設定ファイル込みのFluent Bitのイメージを指定します。
-有効化するとlog_routerコンテナが追加されます。
+FireLens 有効
+FireLens の統合を有効にチェックを入れます。イメージは ECR にアップした設定ファイル込みの Fluent Bit のイメージを指定します。
+有効化すると log_router コンテナが追加されます。
 
-①アプリコンテナ定義の変更
+## 1. アプリコンテナ定義の変更
+
 logDriver: awsfirelens
 
+```
 "logConfiguration":{
     "logDriver": "awsfirelens",
     "secretOptions": null,
     "options": null
 }
-optionsがnullか、optionsの項目が存在しないことを確認
+```
 
-②FireLensコンテナ定義の変更
+options が null か、options の項目が存在しないことを確認
+
+## 2. FireLens コンテナ定義の変更
+
 logDriver: awslogs
-fluentBitコンテナ自体のトラブル対応のためCloudWatch Logs(awslogs)にログを転送する
+fluentBit コンテナ自体のトラブル対応のため CloudWatch Logs(awslogs)にログを転送する
 
+```
 "logConfiguration":{
     "logDriver": "awslogs",
     "secretOptions": null,
     "options": {
-            "awslogs-group": "/ecs/logs/fluentbit-dev-ecs-group",
-            "awslogs-region": "us-east-1",
-            "awslogs-stream-prefix": "from-log-router"
-        }
+        "awslogs-group": "/ecs/logs/fluentbit-dev-ecs-group",
+        "awslogs-region": "us-east-1",
+        "awslogs-stream-prefix": "from-log-router"
+    }
 }
+```
 
-③Fluent Bitの設定ファイルの指定
-JSONを直接書き換える
-            "firelensConfiguration": {
-                "type": "fluentbit",
-                "options": {
-                    "config-file-type": "file",
-                    "config-file-value": "/fluent-bit/etc/extra.conf"
-                }
-            },
+## 3. Fluent Bit の設定ファイルの指定
 
-④タスクロールの追加
-taskexecutionroleではなく、taskroleにログ送信先のリソースへアクセスできるポリシーを追加
-AmazonS3FullAccess
-CloudWatchLogsFullAccess
-AmazonKinesisFirehoseFullAccess
-※先にfluentbit用のlogグループは作成しておく必要があった
+JSON を直接書き換える
 
-5.ログ確認
-①FirelensからCloudwatchログへ
-②アプリからKinesisFirehose→S3とS3へ
-FireLensはFluent BitまたはFluentdを起動するのに便利な機能であって、ログのルーティングはFluent Bit、Fluentdの設定次第
+```
+"firelensConfiguration": {
+    "type": "fluentbit",
+    "options": {
+        "config-file-type": "file",
+        "config-file-value": "/fluent-bit/etc/extra.conf"
+    }
+},
+```
+
+## 4. タスクロールの追加
+
+taskexecutionrole ではなく、taskrole にログ送信先のリソースへアクセスできるポリシーを追加
+_AmazonS3FullAccess_
+_CloudWatchLogsFullAccess_
+_AmazonKinesisFirehoseFullAccess_
+※先に fluentbit 用の log グループは作成しておく必要があった
+
+# 5.ログ確認
+
+1. Firelens から Cloudwatch ログへ
+
+2. アプリから KinesisFirehose→S3 と S3 へ
+
+FireLens は Fluent Bit または Fluentd を起動するのに便利な機能であって、ログのルーティングは Fluent Bit、Fluentd の設定次第
+
+![アーキテクト](https://cdn-ssl-devio-img.classmethod.jp/wp-content/uploads/2021/02/fargate-fiirelens-fluentbit5.png)
