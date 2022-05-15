@@ -1,0 +1,5 @@
+.vscode
+provider.tf
+# variables.tf
+main.tf
+versions.tf
