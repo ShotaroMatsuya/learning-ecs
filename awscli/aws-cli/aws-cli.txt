@@ -1,0 +1,47 @@
+ECRへのログイン
+aws ecr get-login-password --region ap-northeast-1 | docker login --username AWS --password-stdin <aws id 12>.dkr.ecr.<region>.amazonaws.com
+リポジトリ作成
+aws ecr create-repository --repository-name <name/application-name>
+
+ec2インスタンスにecrへのpermissionを付与し、(EC2containerServiceEC2Role)
+ecs.configファイルを作成しs3に保存、ec2インスタンスがそれをコピーする(AmazonS3ReadOnlyAccess)
+
+セキュリティグループ作成
+aws ec2 create-security-group --group-name (sg名) --description "(説明)"
+
+セキュリティグループの確認
+aws ec2 describe-security-groups --group-id sg-(id)
+
+セキュリティグループにrule追加
+aws ec3 authorize-security-group-ingress --group-id sg-(id) ---protocol tcp --port 22 --cidr 0.0.0.0/0
+
+ecs クラスター
+aws ecs create-cluster --cluster-name (cluster name)
+
+ecs クラスター確認
+aws ecs list-clusters
+aws ecs describe-clusters --clusters (cluster名)
+
+s3バケット作成
+aws s3api create-bucket --bucket (バケットの名前) --region (リージョン名) --create-bucket-configuration LocationConstraint=(リージョン名)
+s3バケットにファイルを転送
+aws s3 cp (ローカルのファイル名) s3://(バケット名)
+s3の確認
+aws s3 ls s3://(バケット名)
+ec2インスタンスの作成
+aws ec2 run-instances --image-id ami-(id) --count 1 --instance-type t2.micro --iam-instance-profile Name=(role名) --key-name (key pair名) --security-group-ids sg-(id) --user-data file://get-config-file-from-s3
+
+ecsクラスターで起動中のec2インスタンスを確認
+aws ecs list-container-instances --cluster (クラスター名)
+
+タスク定義作成
+aws ecs register-task-definition --cli-input-json file://(タスク定義用jsonファイル)
+タスク確認
+aws ecs list-task-definition-families
+
+サービス作成
+aws ecs create-service --cluster (クラスター名) --service-name (サービス名) --task-definition (タスク定義) --desired-count 1
+サービス確認
+aws ecs list-services --cluster (クラスター名)
+
+サービス確認

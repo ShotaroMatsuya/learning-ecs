@@ -1,0 +1,18 @@
+{
+    "family":"backend",
+    "containerDefinitions":[
+        {
+            "name": "nodejs",
+            "image":"528163014577.dkr.ecr.ap-northeast-1.amazonaws.com/shotaromatsuya/express-test",
+            "portMappings": [
+                {
+                    "containerPort":8080,
+                    "hostPort":8080
+                }
+            ],
+            "memory": 50,
+            "cpu":102
+        }
+    ]
+
+}
